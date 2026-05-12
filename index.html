@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BeatJumper - Müzikle Platform Yarat!</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; } /*tüm sayfadaki vars boşlukları sıfırlar.*/
+
+    /*ekranı ortalar ve oyunun tam ortada görünmesini sağlar.*/
+    body {
+      background: #0a0a1a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: 'Courier New', monospace;
+      color: #fff;
+      overflow: hidden;
+      transition: background 1s;
+    }
+
+    /* pyunun basliğini neon yapar.*/
+    #baslik {
+      font-size: 2rem;
+      font-weight: bold;
+      letter-spacing: 6px;
+      color: #00ffcc;
+      text-shadow: 0 0 20px #00ffcc88;
+      margin-bottom: 6px;
+      transition: color 1s, text-shadow 1s;
+    }
+   /*oyunun seviyesini gösterir.*/
+    #seviye-banner {
+      font-size: 0.8rem;
+      letter-spacing: 4px;
+      opacity: 0.7;
+      margin-bottom: 6px;
+      transition: color 1s;
+    }
+    /* hangi tşun hangi notaya denk geldiğini gösterir.*/
+    #tus-bilgisi {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .tus-gostergesi {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .tus-kutu {
+      width: 36px;
+      height: 36px;
+      border-radius: 6px;
+      border: 2px solid #ffffff44;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: bold;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .tus-kutu.aktif {
+      transform: scale(1.2);
+      box-shadow: 0 0 14px 4px currentColor;
+    }
+    .nota-ismi { font-size: 0.6rem; opacity: 0.7; }
+    /* oyun alanını çerçeveler.*/
+    #canvas-cerceve {
+      border: 2px solid #00ffcc44;
+      border-radius: 8px;
+      box-shadow: 0 0 30px #00ffcc22;
+      position: relative;
+      transition: border-color 1s, box-shadow 1s;
+    }
+
+    canvas { display: block; border-radius: 6px; }
+
+    #alt-bilgi {
+      margin-top: 8px;
+      font-size: 0.75rem;
+      opacity: 0.5;
+      letter-spacing: 2px;
+    }
+
+    /* oyuna girmeden önce çıkan başlangıç ekranı*/
+    #baslangic-ekrani {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: #0a0a1aee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      gap: 16px;
+      z-index: 10;
+    }
+    #baslangic-ekrani h2 {
+      font-size: 1.8rem;
+      color: #00ffcc;
+      text-shadow: 0 0 20px #00ffcc;
+      letter-spacing: 4px;
+    }
+    #baslangic-ekrani p {
+      font-size: 0.85rem;
+      opacity: 0.8;
+      text-align: center;
+      line-height: 1.8;
+      max-width: 400px;
+    }
+    #baslangic-btn {
+      padding: 12px 40px;
+      background: #00ffcc;
+      color: #0a0a1a;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: bold;
+      letter-spacing: 3px;
+      cursor: pointer;
+      font-family: 'Courier New', monospace;
+      transition: box-shadow 0.2s;
+    }
+    #baslangic-btn:hover { box-shadow: 0 0 20px #00ffcc; }
+
+    /*seviye bitince çıkan geçiş ekranı */
+    #seviye-gecis {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: #000000cc;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      gap: 14px;
+      z-index: 10;
+    }
+    #seviye-gecis.goster { display: flex; }
+    #seviye-gecis h2 {
+      font-size: 2rem;
+      letter-spacing: 6px;
+    }
+    #seviye-gecis p {
+      font-size: 0.9rem;
+      opacity: 0.8;
+      text-align: center;
+      max-width: 400px;
+      line-height: 1.7;
+    }
+    #gecis-btn {
+      padding: 10px 36px;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      font-weight: bold;
+      letter-spacing: 3px;
+      cursor: pointer;
+      font-family: 'Courier New', monospace;
+      transition: box-shadow 0.2s;
+    }
+
+    /*platformun süresini görsel olarak gösterir. */
+    .platform-bar {
+      position: absolute;
+      height: 3px;
+      bottom: -5px;
+      left: 0;
+      border-radius: 2px;
+      transition: width 0.1s linear;
+    }
+  </style>
+</head>
+<body>
+
+<div id="baslik">🎵 BEAT JUMPER 🎵</div>
+<div id="seviye-banner">SEVİYE 1 — NEON ŞEHİR</div>
+<div id="tus-bilgisi"></div>
+
+<div id="canvas-cerceve">
+  <canvas id="oyunCanvas" width="700" height="420"></canvas>
+
+  <!-- Başlangıç ekranı -->
+  <div id="baslangic-ekrani">
+    <h2>🎵 BEAT JUMPER</h2>
+    <p>
+      <b>1-8</b> tuşlarına basarak platform yarat!<br/>
+      <b>1</b> = alçak &nbsp;|&nbsp; <b>8</b> = yüksek<br/>
+      Platformları kullanarak uçurumu aşıp portala ulaş!<br/><br/>
+      <b>← →</b> hareket &nbsp;|&nbsp; <b>BOŞLUK</b> zıpla<br/>
+      <b>R</b> yeniden başla &nbsp;|&nbsp; <b>Tab</b> platformları temizle<br/><br/>
+      <span style="color:#ffdd44">⚠ Her seviyede yeni tehlikeler seni bekliyor!</span>
+    </p>
+    <button id="baslangic-btn" onclick="oyunuBaslat()">OYNA</button>
+  </div>
+
+  <!-- Seviye geçiş ekranı -->
+  <div id="seviye-gecis">
+    <h2 id="gecis-baslik">SEVİYE TAMAMLANDI!</h2>
+    <p id="gecis-aciklama"></p>
+    <button id="gecis-btn" onclick="sonrakiSeviyeyeGec()">DEVAM ET →</button>
+  </div>
+</div>
+
+<div id="alt-bilgi">← →: hareket &nbsp;|&nbsp; Boşluk: zıpla &nbsp;|&nbsp; 1-8: platform yarat &nbsp;|&nbsp; R: yeniden başla</div>
+
+<script>
+//Canvas oyunun çizim yapıldığı ana ekran
+const canvas = document.getElementById('oyunCanvas'); 
+const ctx = canvas.getContext('2d');
+
+//SABİTLER 
+const YERÇEKIMI       = 0.45;
+const ZIPLAMA_GÜCÜ    = -10;
+const YER_Y           = 380;
+const DÖNGÜ_UZUNLUK   = 8;
+const PLATFORM_GENİŞLİK  = 70;
+const PLATFORM_YÜKSEKLİK = 14;
+
+//her tuş bir nota ve renk ile eşleştirildi
+const NOTA_RENKLERİ = [
+  '#ff4466','#ff8844','#ffdd44','#44ff88',
+  '#44ddff','#4488ff','#aa44ff','#ff44cc',
+];
+const NOTA_İSİMLERİ = ['Do','Re','Mi','Fa','Sol','La','Si','Do↑'];
+const NOTA_FREKANSLARI = [261.63,293.66,329.63,349.23,392.00,440.00,493.88,523.25];
+
+//oyunda 3 farklı bölüm vardır.her bölümün zorlugu,teması,engelleri vs farklıdır.
+const SEVİYELER = [
+  {
+    no: 1,
+    ad: 'NEON ŞEHİR',
+    emoji: '🏙️',
+    aciklama: 'Neon şehrin uçurumlarını müzikle aş!\nPlatform yaratmayı öğren.',
+    hedefX: 680,
+    hareketHizi: 3.5,
+    bpm: 100,
+    platformOmru: null,          // platform kaybolmuyor
+    platformSayiLimit: 8,
+    arkaplanRenk1: '#050510',
+    arkaplanRenk2: '#0f0f2a',
+    zeminRenk: '#00ffcc',
+    sabitPlatformlar: [
+      { x: 0,   y: YER_Y, genişlik: 100, yükseklik: 20 },
+      { x: 690, y: YER_Y, genişlik: 200, yükseklik: 20 },
+    ],
+    //oyuncunun değmemesi gereken tehlikeler.
+    engeller: [
+      { x: 620, y: YER_Y-25, genişlik: 20, yükseklik: 20, tür: 'diken' },
+      { x: 710, y: YER_Y-25, genişlik: 20, yükseklik: 20, tür: 'diken' },
+      { x: 500, y: YER_Y-30, genişlik: 16, yükseklik: 16, tür: 'hareketli', vx: 1.2, başX: 460, bitX: 570 },
+    ],
+  },
+  {
+    no: 2,
+    ad: 'FIRTINA',
+    emoji: '⚡',
+    aciklama: 'Fırtına büyüyor! Uçurumlar genişledi,\nengeller hızlandı. Dikkatli ol!',
+    hedefX: 900,
+    hareketHizi: 4.0,
+    bpm: 120,
+    platformOmru: null,
+    platformSayiLimit: 6,        // daha az platform hakkı
+    arkaplanRenk1: '#0a0520',
+    arkaplanRenk2: '#1a0530',
+    zeminRenk: '#aa44ff',
+    sabitPlatformlar: [
+      { x: 0,   y: YER_Y, genişlik: 90,  yükseklik: 20 },
+      { x: 910, y: YER_Y, genişlik: 200, yükseklik: 20 },
+    ],
+    engeller: [
+      { x: 200, y: YER_Y-28, genişlik: 20, yükseklik: 20, tür: 'diken' },
+      { x: 450, y: YER_Y-28, genişlik: 20, yükseklik: 20, tür: 'diken' },
+      { x: 750, y: YER_Y-28, genişlik: 20, yükseklik: 20, tür: 'diken' },
+      { x: 300, y: YER_Y-35, genişlik: 18, yükseklik: 18, tür: 'hareketli', vx: 2.0, başX: 250, bitX: 400 },
+      { x: 600, y: YER_Y-35, genişlik: 18, yükseklik: 18, tür: 'hareketli', vx: 2.2, başX: 550, bitX: 720 },
+    ],
+  },
+  {
+    no: 3,
+    ad: 'KAOS',
+    emoji: '🔥',
+    aciklama: 'Tam kaos! Platformlar 5 saniye sonra kayboluyor.\nHızlı hareket et, hızlı düşün!',
+    hedefX: 1100,
+    hareketHizi: 4.5,
+    bpm: 140,
+    platformOmru: 300,           // 300 frame yani yaklaşık 5 sn sonra kaybolur
+    platformSayiLimit: 5,
+    arkaplanRenk1: '#150500',
+    arkaplanRenk2: '#2a0a00',
+    zeminRenk: '#ff4466',
+    sabitPlatformlar: [
+      { x: 0,    y: YER_Y, genişlik: 80,  yükseklik: 20 },
+      { x: 1110, y: YER_Y, genişlik: 200, yükseklik: 20 },
+    ],
+    engeller: [
+      { x: 200,  y: YER_Y-28, genişlik: 20, yükseklik: 20, tür: 'diken' },
+      { x: 500,  y: YER_Y-28, genişlik: 20, yükseklik: 20, tür: 'diken' },
+      { x: 800,  y: YER_Y-28, genişlik: 20, yükseklik: 20, tür: 'diken' },
+      { x: 300, y: YER_Y-38, genişlik: 18, yükseklik: 18, tür: 'hareketli', vx: 2.8, başX: 200, bitX: 450 },
+      { x: 650, y: YER_Y-38, genişlik: 18, yükseklik: 18, tür: 'hareketli', vx: 3.0, başX: 550, bitX: 850 },
+      { x: 900, y: 200,       genişlik: 18, yükseklik: 18, tür: 'hareketli', vx: 0,  vy: 2.0, başY: 150, bitY: 340, başX: 900, bitX: 900 },
+    ],
+  },
+];
+
+//OYUN DEĞİŞKENLERİ:
+let mevcutSeviye   = 0;   // 0-2
+let oyunDurumu     = 'bekleme';
+let guncelBeat     = 0;
+let toplamPuan     = 0;
+let seviyePuan     = 0;
+let yerleştirilmiş = [];
+let kameraSolKöşe  = 0;
+let sabitPlatformlar = [];
+let engeller       = [];
+let hedefX         = 680;
+let hareketHizi    = 3.5;
+let bpm            = 100;
+let platformOmru   = null;
+let platformSayiLimit = 8;
+
+//OYUNCU
+const oyuncu = {
+  x: 60, y: 300,  // konum bilgisi
+  genişlik: 24, yükseklik: 30,
+  vx: 0, vy: 0,     // hareket hızları
+  yerdeMi: false,   // yere basıp basmadıgını kontrol eder.
+  renk: '#00ffcc',
+  animKare: 0,
+};
+
+// SESLER
+const arkaplanMuzik = new Audio('varliklar/8-bit-water-stage-loop.wav');
+arkaplanMuzik.loop = true; // oyun devam ettiği sürece döngü olarak çalar.
+arkaplanMuzik.volume = 0.3;
+
+const ziplamaSesi = new Audio('varliklar/jump.wav');
+ziplamaSesi.volume = 0.6;  //space tuşuna basınca çalıyor.
+
+const beepSesi = new Audio('varliklar/beep.wav');
+beepSesi.volume = 0.5;   //platform oluşurken çalıyor.
+
+const olumSesi = new Audio('varliklar/game_over.wav');
+olumSesi.volume = 0.7;  
+
+const seviyeBitisSesi = new Audio('varliklar/level_complete.wav');
+seviyeBitisSesi.volume = 0.7;
+
+let sesAcik = false;
+function sesleriAc() {  //oyuncu ilk etkileşimde sesleri aktif ediyo.
+  if (sesAcik) return;
+  sesAcik = true;
+}
+
+function arkaplanMuzigiBaslat() {
+  arkaplanMuzik.currentTime = 0;
+  arkaplanMuzik.play().catch(() => {});
+}
+
+function arkaplanMuzigiDurdur() {
+  arkaplanMuzik.pause();
+  arkaplanMuzik.currentTime = 0;
+}
+
+function ziplamaSesiniCal() {
+  ziplamaSesi.currentTime = 0;
+  ziplamaSesi.play().catch(() => {});
+}
+
+function beepCal() {
+  beepSesi.currentTime = 0;
+  beepSesi.play().catch(() => {});
+}
+
+function olumSesiniCal() {
+  olumSesi.currentTime = 0;
+  olumSesi.play().catch(() => {});
+}
+
+function seviyeBitisSesiniCal() {
+  seviyeBitisSesi.currentTime = 0;
+  seviyeBitisSesi.play().catch(() => {});
+}
+
+//platform oluşumu ve müzik uyumunu sağlıyor.
+let ritimInterval = null;
+let ritimBeat = 0;
+
+function ritimDöngüsüBaşlat() {
+  if (ritimInterval) return;
+  const beatSüresi = (60 / bpm) * 1000;
+  ritimInterval = setInterval(() => {
+    ritimBeat = (ritimBeat + 1) % DÖNGÜ_UZUNLUK;
+    guncelBeat = ritimBeat;
+  }, beatSüresi);
+}
+
+function ritimDöngüsüDurdur() {
+  clearInterval(ritimInterval);
+  ritimInterval = null;
+}
+
+//tuş durumunu kontrol ediyor.
+const tuşlar = {};
+
+//ekranda 1-8 tuşlarının görselini oluşturuyor.
+function tuşGöstergeleriniOluştur() {
+  const k = document.getElementById('tus-bilgisi');
+  k.innerHTML = '';
+  for (let i=0;i<8;i++) {
+    const div = document.createElement('div');
+    div.className = 'tus-gostergesi';
+    div.innerHTML = `
+      <div class="tus-kutu" id="tus-${i+1}" style="color:${NOTA_RENKLERİ[i]};border-color:${NOTA_RENKLERİ[i]}55;">${i+1}</div>
+      <span class="nota-ismi" style="color:${NOTA_RENKLERİ[i]}">${NOTA_İSİMLERİ[i]}</span>`;
+    k.appendChild(div);
+  }
+}
+
+function tuşParlat(idx) {
+  const kutu = document.getElementById(`tus-${idx+1}`);
+  if (!kutu) return;
+  kutu.classList.add('aktif');
+  setTimeout(() => kutu.classList.remove('aktif'), 150);
+}
+
+// platformların oluşturulması
+function platformYarat(notaIndex) {
+// Her nota = sabit bir yükseklik katmanı
+  const katman = (YER_Y - 80) / 7;
+  const platY  = Math.max(80, Math.min(YER_Y-30, YER_Y - 20 - notaIndex * katman));
+  const platX  = oyuncu.x + 80;
+
+// Her basış bağımsız yeni platform oluşturuyor
+// Limit kontrolü: en eski platformu siliyor.
+  if (yerleştirilmiş.length >= platformSayiLimit) yerleştirilmiş.shift();
+
+  yerleştirilmiş.push({
+    x: platX, y: platY,
+    genişlik: PLATFORM_GENİŞLİK, yükseklik: PLATFORM_YÜKSEKLİK,
+    notaIndex, beatIndex: guncelBeat,
+    parlaklik: 1.0,
+    omur: platformOmru !== null ? platformOmru : Infinity,
+    maxOmur: platformOmru !== null ? platformOmru : Infinity,
+  });
+  beepCal();
+  tuşParlat(notaIndex);
+  seviyePuan += 5;
+}
+
+//varlıkların birbirine temas edip etmediğini kontrol ediyor.
+function çakışıyorMu(a, b) {
+  return a.x < b.x+b.genişlik && a.x+a.genişlik > b.x &&
+         a.y < b.y+b.yükseklik && a.y+a.yükseklik > b.y;
+}
+
+function platformÇarpışması(platform) {
+  if (oyuncu.vy >= 0 &&
+      oyuncu.y+oyuncu.yükseklik >= platform.y &&
+      oyuncu.y+oyuncu.yükseklik <= platform.y+platform.yükseklik+4 &&
+      oyuncu.x+oyuncu.genişlik > platform.x+2 &&
+      oyuncu.x < platform.x+platform.genişlik-2) {
+    oyuncu.y = platform.y - oyuncu.yükseklik;
+    oyuncu.vy = 0;
+    oyuncu.yerdeMi = true;
+    return true;
+  }
+  return false;
+}
+
+//oyuncunun hareketlerini günceller.
+function oyuncuGüncelle() {
+  if (tuşlar['ArrowLeft']  || tuşlar['a'] || tuşlar['A'])  oyuncu.vx = -hareketHizi;//hareket kontrolü
+  else if (tuşlar['ArrowRight'] || tuşlar['d'] || tuşlar['D']) oyuncu.vx = hareketHizi;
+  else oyuncu.vx *= 0.8; // tuş basılı ise oyuncu hız kazanıyor.
+  
+  // zıplamayı sağlar.
+  if ((tuşlar[' '] || tuşlar['ArrowUp']) && oyuncu.yerdeMi) { 
+    oyuncu.vy = ZIPLAMA_GÜCÜ;
+    oyuncu.yerdeMi = false;
+    ziplamaSesiniCal();
+  }
+
+  oyuncu.vy += YERÇEKIMI;
+  oyuncu.vy = Math.min(oyuncu.vy, 14);
+  oyuncu.x += oyuncu.vx;   //konumu güncellenir
+  oyuncu.y += oyuncu.vy;
+  if (oyuncu.x < 0) { oyuncu.x = 0; oyuncu.vx = 0; } // ekran dışına çıkmayı engeller.
+  if (Math.abs(oyuncu.vx) > 0.5) oyuncu.animKare++;
+
+  oyuncu.yerdeMi = false;
+  sabitPlatformlar.forEach(p => platformÇarpışması(p)); //oyuncu paltformlara çarpıyor mu ona bakıyor.
+  yerleştirilmiş.forEach(p => platformÇarpışması(p));
+
+  engeller.forEach(e => {
+    if (çakışıyorMu(oyuncu, e)) oyunKaybedildi();
+  });
+
+  if (oyuncu.y > canvas.height + 50) oyunKaybedildi();  // oyuncu ekrandan düştüğünde oyun kaybediliiyor.
+  if (oyuncu.x > hedefX) seviyeTamamlandı();  
+  //ekran kaydırma sistemi
+  const hedefKamera = oyuncu.x - canvas.width/3;  
+  kameraSolKöşe += (hedefKamera - kameraSolKöşe) * 0.1;
+  kameraSolKöşe = Math.max(0, kameraSolKöşe);
+}
+
+//hareketli olan engellerin konumunu günceller.
+function engelleriGüncelle() {
+  engeller.forEach(e => {
+    if (e.tür === 'hareketli') {
+    // Yatay hareket
+      if (e.vx) {
+        e.x += e.vx;
+        if (e.x > e.bitX || e.x < e.başX) e.vx *= -1;
+      }
+    // Dikey hareket sadece seviye 3 te var
+      if (e.vy) {
+        e.y += e.vy;
+        if (e.y > e.bitY || e.y < e.başY) e.vy *= -1;
+      }
+    }
+  });
+}
+
+//platformların güncellenmesi
+function platformlarıGüncelle() {
+  yerleştirilmiş.forEach(p => {
+    if (p.parlaklik > 0.3) p.parlaklik -= 0.02;
+  // süresini azalt sadece seviye 3 te olan bir özellik bu.
+    if (p.omur !== Infinity) p.omur--;
+  });
+// Süresi dolan platformları sil
+  yerleştirilmiş = yerleştirilmiş.filter(p => p.omur > 0);
+}
+
+//seviyeleri başlatır.
+function seviyeyiYükle(seviyeNo) {
+  const s = SEVİYELER[seviyeNo];
+  mevcutSeviye   = seviyeNo;
+  hedefX         = s.hedefX;
+  hareketHizi    = s.hareketHizi;
+  bpm            = s.bpm;
+  platformOmru   = s.platformOmru;
+  platformSayiLimit = s.platformSayiLimit;
+
+ //seviye değişince engelleri ve platformları yeni seviye için kopyalar
+  engeller = s.engeller.map(e => ({...e}));
+  sabitPlatformlar = s.sabitPlatformlar.map(p => ({...p}));
+
+  //oyuncuyu sıfırlar
+  oyuncu.x = 60; oyuncu.y = 300;
+  oyuncu.vx = 0; oyuncu.vy = 0;
+  oyuncu.yerdeMi = false; oyuncu.animKare = 0;
+  oyuncu.renk = s.zeminRenk;
+
+  kameraSolKöşe = 0;
+  yerleştirilmiş = [];
+  seviyePuan = 0;
+  guncelBeat = 0;
+  oyunDurumu = 'oyun';
+
+  //ekrandaki yazıları arayüzleri seviyeye göre günceller.
+  document.getElementById('seviye-banner').textContent =
+    `SEVİYE ${s.no} — ${s.emoji} ${s.ad}`;
+  document.getElementById('seviye-banner').style.color = s.zeminRenk;
+  document.getElementById('baslik').style.color = s.zeminRenk;
+  document.getElementById('baslik').style.textShadow = `0 0 20px ${s.zeminRenk}88`;
+  document.getElementById('canvas-cerceve').style.borderColor = s.zeminRenk + '44';
+  document.getElementById('canvas-cerceve').style.boxShadow = `0 0 30px ${s.zeminRenk}22`;
+
+  ritimDöngüsüDurdur();
+  arkaplanMuzigiDurdur();
+  ritimDöngüsüBaşlat();
+  arkaplanMuzigiBaslat();
+}
+
+//oyun
+function oyunuBaslat() {
+  sesleriAc();
+  document.getElementById('baslangic-ekrani').style.display = 'none';
+  toplamPuan = 0;
+  seviyeyiYükle(0);
+}
+
+function seviyeTamamlandı() {
+  if (oyunDurumu !== 'oyun') return;
+  oyunDurumu = 'seviyeBitti';
+  toplamPuan += seviyePuan + 100;
+  ritimDöngüsüDurdur();
+  arkaplanMuzigiDurdur();
+  seviyeBitisSesiniCal();
+
+  const sonSeviye = mevcutSeviye >= SEVİYELER.length - 1;
+  const panel = document.getElementById('seviye-gecis');
+  const baslik = document.getElementById('gecis-baslik');
+  const acik   = document.getElementById('gecis-aciklama');
+  const btn    = document.getElementById('gecis-btn');
+  const s      = SEVİYELER[mevcutSeviye];
+
+  panel.classList.add('goster');
+  baslik.style.color = s.zeminRenk;
+  baslik.textContent = sonSeviye
+    ? '🏆 TÜM SEVİYELER TAMAMLANDI!'
+    : `${s.emoji} ${s.ad} TAMAMLANDI!`;
+
+  if (sonSeviye) {
+    acik.innerHTML = `Harika! Tüm seviyeleri aştın!<br/>Toplam Puan: <b style="color:${s.zeminRenk}">${toplamPuan}</b>`;
+    btn.textContent = 'YENİDEN OYNA';
+    btn.style.background = s.zeminRenk;
+    btn.style.color = '#0a0a1a';
+  } else {
+    const sonraki = SEVİYELER[mevcutSeviye + 1];
+    acik.innerHTML = `Seviye Puanı: <b style="color:${s.zeminRenk}">${seviyePuan + 100}</b><br/><br/>
+      Sıradaki: <b style="color:${sonraki.zeminRenk}">${sonraki.emoji} ${sonraki.ad}</b><br/>${sonraki.aciklama}`;
+    btn.textContent = 'DEVAM ET →';
+    btn.style.background = sonraki.zeminRenk;
+    btn.style.color = '#0a0a1a';
+  }
+}
+
+function sonrakiSeviyeyeGec() {
+  document.getElementById('seviye-gecis').classList.remove('goster');
+  if (mevcutSeviye >= SEVİYELER.length - 1) {
+    // Tüm seviyeler bitti, baştan başla
+    toplamPuan = 0;
+    seviyeyiYükle(0);
+  } else {
+    seviyeyiYükle(mevcutSeviye + 1);
+  }
+}
+
+function oyunKaybedildi() {
+  if (oyunDurumu !== 'oyun') return;
+  oyunDurumu = 'kaybetti';
+  ritimDöngüsüDurdur();
+  arkaplanMuzigiDurdur();
+  olumSesiniCal();
+}
+
+function seviyeyiYenidenBaslat() {
+  document.getElementById('seviye-gecis').classList.remove('goster');
+  seviyeyiYükle(mevcutSeviye);
+}
+
+//oyundaki tüm görsellerin çizimi
+function arkaplanÇiz() {
+  const s = SEVİYELER[mevcutSeviye];
+  const grad = ctx.createLinearGradient(0,0,0,canvas.height);
+  grad.addColorStop(0, s.arkaplanRenk1);
+  grad.addColorStop(1, s.arkaplanRenk2);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  //yıldızlar 
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  for (let i=0;i<60;i++) {
+    const sx = ((i*137+50)%800) - (kameraSolKöşe*0.15%800);
+    const sy = (i*73+30)%280;
+    const b  = (i%3===0) ? 1.5 : 1;
+    ctx.fillRect(((sx%canvas.width)+canvas.width)%canvas.width, sy, b, b);
+  }
+
+  //seviye 2 deki şimşek efekti 
+  if (mevcutSeviye === 1 && Math.random() < 0.004) {
+    ctx.strokeStyle = '#aa44ff44';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    const lx = Math.random()*canvas.width;
+    ctx.moveTo(lx, 0);
+    ctx.lineTo(lx + (Math.random()-0.5)*60, canvas.height*0.4);
+    ctx.lineTo(lx + (Math.random()-0.5)*80, canvas.height*0.7);
+    ctx.stroke();
+  }
+
+  //seviye 3 teki ateş partikülleri efekti
+  if (mevcutSeviye === 2) {
+    const ateş = ctx.createLinearGradient(0, YER_Y+20, 0, canvas.height);
+    ateş.addColorStop(0, '#ff446622');
+    ateş.addColorStop(1, '#00000000');
+    ctx.fillStyle = ateş;
+    ctx.fillRect(0, YER_Y+20, canvas.width, canvas.height-YER_Y-20);
+  }
+}
+//zemin çizgisi
+function zeminÇiz() {
+  const s = SEVİYELER[mevcutSeviye];
+  ctx.strokeStyle = s.zeminRenk + '33';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([8,8]);
+  ctx.beginPath();
+  ctx.moveTo(0, YER_Y - kameraSolKöşe%16);
+  ctx.lineTo(canvas.width, YER_Y - kameraSolKöşe%16);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function sabitPlatformlariÇiz() {
+  const s = SEVİYELER[mevcutSeviye];
+  sabitPlatformlar.forEach(p => {
+    const ex = p.x - kameraSolKöşe;
+    if (ex > -p.genişlik && ex < canvas.width+p.genişlik) {
+      ctx.fillStyle = '#1a2a4a';
+      ctx.fillRect(ex, p.y, p.genişlik, p.yükseklik);
+      ctx.fillStyle = s.zeminRenk;
+      ctx.fillRect(ex, p.y, p.genişlik, 3);
+      ctx.shadowColor = s.zeminRenk;
+      ctx.shadowBlur = 8;
+      ctx.fillRect(ex, p.y, p.genişlik, 2);
+      ctx.shadowBlur = 0;
+    }
+  });
+}
+
+function müzikPlatformlariniÇiz() {
+  yerleştirilmiş.forEach(p => {
+    const ex = p.x - kameraSolKöşe;
+    if (ex > -p.genişlik && ex < canvas.width+p.genişlik) {
+      const renk = NOTA_RENKLERİ[p.notaIndex];
+      const alfa = p.parlaklik;
+
+      ctx.globalAlpha = alfa * 0.7;
+      ctx.fillStyle = renk + '33';
+      ctx.fillRect(ex, p.y, p.genişlik, p.yükseklik);
+
+      ctx.globalAlpha = alfa;
+      ctx.fillStyle = renk;
+      ctx.fillRect(ex, p.y, p.genişlik, 3);
+      ctx.shadowColor = renk;
+      ctx.shadowBlur = 12*alfa;
+      ctx.fillRect(ex, p.y, p.genişlik, 2);
+      ctx.shadowBlur = 0;
+
+      ctx.fillStyle = renk;
+      ctx.globalAlpha = alfa*0.8;
+      ctx.beginPath();
+      ctx.arc(ex+p.genişlik/2, p.y+p.yükseklik+8, 4, 0, Math.PI*2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      //seviye 3 teki süreli platformun ömrü 
+      if (platformOmru !== null && p.omur !== Infinity) {
+        const oran = p.omur / p.maxOmur;
+        ctx.fillStyle = oran > 0.4 ? renk : '#ff4444';
+        ctx.globalAlpha = 0.8;
+        ctx.fillRect(ex, p.y - 5, p.genişlik * oran, 3);
+        ctx.globalAlpha = 1;
+      }
+    }
+  });
+}
+
+function engelleriÇiz() {
+  engeller.forEach(e => {
+    const ex = e.x - kameraSolKöşe;
+    if (ex > -e.genişlik && ex < canvas.width+e.genişlik) {
+      if (e.tür === 'diken' || e.tür === 'hareketli') {
+        ctx.fillStyle = '#ff3344';
+        ctx.shadowColor = '#ff3344';
+        ctx.shadowBlur = 10;
+        for (let i=0;i<Math.floor(e.genişlik/10);i++) {
+          ctx.beginPath();
+          ctx.moveTo(ex+i*10, e.y+e.yükseklik);
+          ctx.lineTo(ex+i*10+5, e.y);
+          ctx.lineTo(ex+i*10+10, e.y+e.yükseklik);
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.shadowBlur = 0;
+      }
+    }
+  });
+}
+
+function oyuncuÇiz() {
+  const ex   = oyuncu.x - kameraSolKöşe;
+  const renk = oyuncu.renk;
+  ctx.shadowColor = renk; ctx.shadowBlur = 15;
+  ctx.fillStyle = renk;
+  ctx.fillRect(ex+4, oyuncu.y+8, 16, 18);
+  ctx.fillStyle = '#ccffee';
+  ctx.fillRect(ex+5, oyuncu.y, 14, 12);
+  ctx.fillStyle = '#0a0a1a';
+  if (Math.floor(oyuncu.animKare/60)%8===0) {
+    ctx.fillRect(ex+8, oyuncu.y+6, 3, 1);
+    ctx.fillRect(ex+14, oyuncu.y+6, 3, 1);
+  } else {
+    ctx.fillRect(ex+8, oyuncu.y+4, 3, 4);
+    ctx.fillRect(ex+14, oyuncu.y+4, 3, 4);
+  }
+  const bO = oyuncu.yerdeMi ? Math.sin(oyuncu.animKare*0.25)*3 : 0;
+  ctx.fillStyle = renk;
+  ctx.fillRect(ex+5,  oyuncu.y+26+bO, 6, 8);
+  ctx.fillRect(ex+13, oyuncu.y+26-bO, 6, 8);
+  ctx.shadowBlur = 0;
+}
+
+function hedefiÇiz() {
+  const ex = hedefX - kameraSolKöşe;
+  if (ex > -30 && ex < canvas.width+30) {
+    const t = Date.now()/800;
+    const s = SEVİYELER[mevcutSeviye];
+    ctx.strokeStyle = s.zeminRenk;
+    ctx.lineWidth = 3;
+    ctx.shadowColor = s.zeminRenk;
+    ctx.shadowBlur = 20+Math.sin(t)*10;
+    ctx.beginPath();
+    ctx.moveTo(ex, YER_Y-60); ctx.lineTo(ex, YER_Y);
+    ctx.stroke();
+    ctx.fillStyle = s.zeminRenk;
+    ctx.font = '24px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(mevcutSeviye===2?'🔥':'⭐', ex, YER_Y-70);
+    ctx.shadowBlur = 0;
+  }
+}
+
+function beatGöstergesiÇiz() {
+  const başX = canvas.width/2 - (DÖNGÜ_UZUNLUK*28)/2;
+  const y = canvas.height-30;
+  for (let i=0;i<DÖNGÜ_UZUNLUK;i++) {
+    const x = başX+i*28;
+    const aktif = guncelBeat===i;
+    const notaVar = yerleştirilmiş.some(p => p.beatIndex===i);
+    const notaRenk = notaVar
+      ? NOTA_RENKLERİ[yerleştirilmiş.find(p=>p.beatIndex===i).notaIndex]
+      : '#ffffff22';
+    ctx.fillStyle = aktif ? '#ffffff' : notaRenk;
+    ctx.globalAlpha = aktif ? 1 : 0.4;
+    ctx.shadowColor = aktif ? '#ffffff' : notaRenk;
+    ctx.shadowBlur  = aktif ? 12 : 0;
+    ctx.fillRect(x, y-(aktif?12:6), 20, aktif?16:10);
+    ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+  }
+}
+
+function hudÇiz() { //ekrandaki bilgi paneli
+  const s = SEVİYELER[mevcutSeviye];
+  ctx.fillStyle = s.zeminRenk;
+  ctx.font = 'bold 16px Courier New';
+  ctx.textAlign = 'left';
+  ctx.fillText(`PUAN: ${toplamPuan + seviyePuan}`, 14, 24);
+
+  ctx.fillStyle = '#ffffff88';
+  ctx.font = '12px Courier New';
+  ctx.fillText(`Platform: ${yerleştirilmiş.length}/${platformSayiLimit}`, 14, 42);
+
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#ffffff55';
+  ctx.fillText(`BPM: ${bpm}`, canvas.width-14, 24);
+
+  //seviye göstergesi sağ üstte
+  ctx.fillStyle = s.zeminRenk + 'aa';
+  ctx.font = 'bold 13px Courier New';
+  ctx.fillText(`S${s.no}/3  ${s.emoji}`, canvas.width-14, 44);
+
+  //seviye 3 platform uyarısı
+  if (platformOmru !== null) {
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ff444488';
+    ctx.font = '11px Courier New';
+    ctx.fillText('⚠ Platformlar 5sn sonra kayboluyor!', canvas.width/2, 18);
+  }
+}
+
+function bitişEkranıÇiz() {
+  const s = SEVİYELER[mevcutSeviye];
+  ctx.fillStyle = 'rgba(10,10,26,0.85)';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#ff4466';
+  ctx.font = 'bold 38px Courier New';
+  ctx.fillText('💀 ÖLDÜN 💀', canvas.width/2, canvas.height/2-30);
+  ctx.fillStyle = '#ffffff88';
+  ctx.font = '14px Courier New';
+  ctx.fillText(`Seviye ${s.no}: ${s.emoji} ${s.ad}`, canvas.width/2, canvas.height/2+10);
+  ctx.font = '16px Courier New';
+  ctx.fillText('R → bu seviyeyi tekrar dene', canvas.width/2, canvas.height/2+45);
+}
+
+function oyunDöngüsü() {
+  requestAnimationFrame(oyunDöngüsü);
+
+  arkaplanÇiz();
+  zeminÇiz();
+
+  if (oyunDurumu === 'oyun') {
+    oyuncuGüncelle();
+    engelleriGüncelle();
+    platformlarıGüncelle();
+  }
+
+  sabitPlatformlariÇiz();
+  müzikPlatformlariniÇiz();
+  engelleriÇiz();
+  hedefiÇiz();
+  oyuncuÇiz();
+  beatGöstergesiÇiz();
+  hudÇiz();
+
+  if (oyunDurumu === 'kaybetti') bitişEkranıÇiz();
+}
+//klavyeden gelen tuş girişlerini yönetiyor.
+document.addEventListener('keydown', (e) => {
+  if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(e.key)) e.preventDefault();
+  tuşlar[e.key] = true;
+//nota yaratma.tuşlar nota indexine ceviriliyori
+  if (oyunDurumu === 'oyun') {
+    const notaMap = {'1':0,'2':1,'3':2,'4':3,'5':4,'6':5,'7':6,'8':7};
+    if (notaMap[e.key] !== undefined) platformYarat(notaMap[e.key]);
+  }
+
+  if ((e.key==='r'||e.key==='R') && oyunDurumu==='kaybetti') {
+    seviyeyiYenidenBaslat();
+  }
+
+  if (e.key==='Tab') {
+    e.preventDefault();
+    if (oyunDurumu==='oyun') yerleştirilmiş = [];
+  }
+});
+
+document.addEventListener('keyup', (e) => { tuşlar[e.key] = false; });
+
+//oyunun ilk açılması
+tuşGöstergeleriniOluştur();
+oyunDöngüsü();
+</script>
+</body>
+</html>
