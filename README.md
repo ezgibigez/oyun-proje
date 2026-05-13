@@ -1,10 +1,10 @@
-#beaatjumper oyun tanıtımı
+# beaatjumper oyun tanıtımı
 Bu proje, Bursa Teknik Üniversitesi Bilgisayar Mühendisliği Bölümü Web Programlama dersi kapsamında geliştirilmiş bir web oyunudur.
 SongRunner (https://mattgoode.itch.io/songrunner) adlı oyunun temel mekaniğinden esinlenerek HTML5 Canvas ve javaScript kullanılarak geliştirildi.
 Oyunda 3 ses dosyası kullanıldı.
 Benim sitemin adresi:https://ezgibigez.github.io/oyun-proje/
 
-#nasıl oynanır
+# nasıl oynanır
 oyun platformları kendin yarattığın bir bölüm-atlama oyunudur. Klavyenin 1-8 numaralı tuşlarına basarak karakterinin önüne farklı yüksekliklerde ve farklı notalarda platformlar oluşturursun. 
 Bu platformları kullanarak geniş uçurumları aşman ve her seviyenin sonundaki hedefe ulaşman gerekir.
 ![başlangıç ekranı](start_screen.png)
@@ -17,10 +17,10 @@ Karakter platformu kaçırıp boşluğa düştüğünde veya bir engele çarptı
 ![ölüm ekranı](game_over.png)
 
 
-#nasıl çalıştırılır
+# nasıl çalıştırılır
 Projenin dosyalarını indirip bir klasöre koyduktan sonra index.html dosyasını açarsanız oyun sayfası açılır.
 
-#kaynaklar
+# kaynaklar
 oyun içinde kullanılan ses efektleri aşağıdaki kaynaklardan alınmıştır:
 1- 8-bit-water-stage-loop.wav (https://freesound.org/)
 2- jump.wav(https://freesound.org/)
